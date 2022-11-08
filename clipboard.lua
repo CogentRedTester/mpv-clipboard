@@ -62,11 +62,18 @@ local function co_callback()
     end
 end
 
+-- run the given function in a coroutine
 local function co_run(fn, ...)
     local co = coroutine.create(fn)
     co_resume_err(co, ...)
 end
 
+-- escapes a string so that it can be inserted into powershell as a string literal
+local function escape_powershell(str)
+    return '"'..string.gsub(str, '[$"`]', '`%1')..'"'
+end
+
+-- asynchronously runs the given command
 local function subprocess(args)
     mp.command_native_async({
         name = 'subprocess',
@@ -132,11 +139,14 @@ local function substitute(str, clip)
 end
 
 -- sets the contents of the clipboard to the given string
--- this is based on mpv-copyTime:
--- https://github.com/Arieleg/mpv-copyTime/blob/master/copyTime.lua
 local function set_clipboard(text)
+    msg.verbose('setting clipboard text:', text)
+
     if platform == 'windows' then
-        mp.commandv('run', 'powershell', '-NoProfile', '-command', 'set-clipboard', text)
+        mp.commandv('run', 'powershell', '-NoProfile', '-command', 'set-clipboard', escape_powershell(text))
+
+    -- this is based on mpv-copyTime:
+    -- https://github.com/Arieleg/mpv-copyTime/blob/master/copyTime.lua
     else
         local pipe = io.popen(get_command())
         if not pipe then return msg.error('could not open xclip pipe') end
