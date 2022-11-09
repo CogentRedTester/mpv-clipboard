@@ -39,7 +39,7 @@ local platform = detect_platform()
 -- this is based on mpv-copyTime:
 -- https://github.com/Arieleg/mpv-copyTime/blob/master/copyTime.lua
 local function get_command()
-    if platform == 'x11' then return 'xclip -silent -in -selection clipboard' end
+    if platform == 'x11' then return 'xclip -silent -selection clipboard -in' end
     if platform == 'wayland' then return 'wl-copy' end
     if platform == 'macos' then return 'pbcopy' end
 end
@@ -148,8 +148,8 @@ local function set_clipboard(text)
     -- this is based on mpv-copyTime:
     -- https://github.com/Arieleg/mpv-copyTime/blob/master/copyTime.lua
     else
-        local pipe = io.popen(get_command())
-        if not pipe then return msg.error('could not open xclip pipe') end
+        local pipe = io.popen(get_command(), 'w')
+        if not pipe then return msg.error('could not open unix pipe') end
         pipe:write(text)
         pipe:close()
     end
