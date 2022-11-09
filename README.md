@@ -2,6 +2,8 @@
 
 Provides generic but powerful low-level clipboard commands for users and script writers.
 
+Requires `powershell` on Windows,`pbcopy`/`pbpaste` on MacOS, `xclip` on X11, and `wl-copy`/`wl-paste` on Wayland.  
+
 ## Script Messages
 
 ### set-clipboard
