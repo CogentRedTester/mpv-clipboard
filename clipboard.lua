@@ -54,14 +54,6 @@ local function co_resume_err(...)
     return success
 end
 
---creates a callback fuction to resume the current coroutine
-local function co_callback()
-    local co = coroutine.running()
-    return function(...)
-        return co_resume_err(co, ...)
-    end
-end
-
 -- run the given function in a coroutine
 local function co_run(fn, ...)
     local co = coroutine.create(fn)
@@ -73,16 +65,29 @@ local function escape_powershell(str)
     return '"'..string.gsub(str, '[$"`]', '`%1')..'"'
 end
 
--- asynchronously runs the given command
+-- runs the given command.
+-- if run in a coroutine then yield, otherwise block
 local function subprocess(args)
-    mp.command_native_async({
+    local cmd = {
         name = 'subprocess',
         args = args,
         playback_only = false,
         capture_stdout = true
-    }, co_callback())
+    }
 
-    local success, res = coroutine.yield()
+    local success, res, err
+    local co, main = coroutine.running()
+
+    if main or not co then
+        res, err = mp.command_native(cmd)
+        success = res
+    else
+        mp.command_native_async(cmd, function(...) return co_resume_err(co, ...) end)
+        success, res, err = coroutine.yield()
+    end
+
+    -- something pretty drastic has to happen for this to error
+    if not success then error(err) end
     res.error = res.error_string ~= '' and res.error_string or nil
     return res
 end
@@ -158,14 +163,19 @@ end
 --runs the given mpv command, substituting %clip% for the contents of the clipboard
 local function clipboard_command(...)
     local args = {'osd-auto', ...}
-    co_run(function()
+    local function command()
         local clip = get_clipboard()
 
         for i, str in ipairs(args) do
             args[i] = substitute(str, clip)
         end
         mp.command_native(args)
-    end)
+    end
+
+    -- if the first command prefix is sync then run synchronously, otherwise run
+    -- in a corooutine which allows the get_clipboard command to yield.
+    if select(1, ...) == 'sync' then pcall(command)
+    else co_run(command) end
 end
 
 -- sends the contents of the clipboard to any script that requests it
