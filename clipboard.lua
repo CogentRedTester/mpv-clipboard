@@ -168,10 +168,11 @@ end
 
 --runs the given mpv command, substituting %clip% for the contents of the clipboard
 local function clipboard_command(...)
+    msg.verbose('received clipboard command:', ...)
+
     local args = {'osd-auto', ...}
     local function command()
         local clip = get_clipboard()
-
         for i, str in ipairs(args) do
             args[i] = substitute(str, clip)
         end
@@ -187,6 +188,7 @@ end
 -- sends the contents of the clipboard to any script that requests it
 -- sends the response to the given response string
 local function clipboard_request(response)
+    msg.verbose('received clipboard request - sending response to:', response)
     co_run(function()
         mp.commandv('script-message', response, get_clipboard())
     end)
