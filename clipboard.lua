@@ -44,6 +44,12 @@ local function get_command()
     if platform == 'macos' then return 'pbcopy' end
 end
 
+-- an error handler to pass to xpcall
+local function error_handler(err)
+    msg.warn(debug.traceback("", 2))
+    msg.error(err)
+end
+
 --resumes a coroutine and prints an error if it was not sucessful
 local function co_resume_err(...)
     local success, err = coroutine.resume(...)
@@ -174,7 +180,7 @@ local function clipboard_command(...)
 
     -- if the first command prefix is sync then run synchronously, otherwise run
     -- in a corooutine which allows the get_clipboard command to yield.
-    if select(1, ...) == 'sync' then pcall(command)
+    if select(1, ...) == 'sync' then xpcall(command, error_handler)
     else co_run(command) end
 end
 
